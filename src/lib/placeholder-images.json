@@ -1,0 +1,10 @@
+{
+  "placeholderImages": [
+    {
+      "id": "github-logo",
+      "description": "The GitHub Octocat logo.",
+      "imageUrl": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+      "imageHint": "github logo"
+    }
+  ]
+}
