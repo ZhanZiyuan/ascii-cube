@@ -30,7 +30,7 @@ const AsciiCube: React.FC = () => {
     if (!mountRef.current) return;
 
     const container = mountRef.current;
-    
+
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
 
@@ -98,12 +98,12 @@ const AsciiCube: React.FC = () => {
 
     const githubLogo = PlaceHolderImages.find(img => img.id === 'github-logo');
     if (githubLogo?.imageUrl) {
-        invertTexture(githubLogo.imageUrl).then((tex) => {
-          material.map = tex;
-          material.needsUpdate = true;
-        }).catch(console.error);
+      invertTexture(githubLogo.imageUrl).then((tex) => {
+        material.map = tex;
+        material.needsUpdate = true;
+      }).catch(console.error);
     }
-    
+
     const handlePointerDown = (e: PointerEvent) => {
       stateRef.current.rotating = true;
       stateRef.current.lastX = e.clientX;
@@ -126,7 +126,7 @@ const AsciiCube: React.FC = () => {
       stateRef.current.rotating = false;
       try {
         effect.domElement.releasePointerCapture(e.pointerId);
-      } catch (error) {}
+      } catch (error) { }
       effect.domElement.style.cursor = 'grab';
     };
 
@@ -137,18 +137,18 @@ const AsciiCube: React.FC = () => {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-        const step = 0.06;
-        if (e.key === 'ArrowLeft') stateRef.current.keyboardRotation.y = -step;
-        if (e.key === 'ArrowRight') stateRef.current.keyboardRotation.y = step;
-        if (e.key === 'ArrowUp') stateRef.current.keyboardRotation.x = -step;
-        if (e.key === 'ArrowDown') stateRef.current.keyboardRotation.x = step;
+      const step = 0.06;
+      if (e.key === 'ArrowLeft') stateRef.current.keyboardRotation.y = -step;
+      if (e.key === 'ArrowRight') stateRef.current.keyboardRotation.y = step;
+      if (e.key === 'ArrowUp') stateRef.current.keyboardRotation.x = -step;
+      if (e.key === 'ArrowDown') stateRef.current.keyboardRotation.x = step;
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-            stateRef.current.keyboardRotation.x = 0;
-            stateRef.current.keyboardRotation.y = 0;
-        }
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        stateRef.current.keyboardRotation.x = 0;
+        stateRef.current.keyboardRotation.y = 0;
+      }
     };
 
     effect.domElement.addEventListener('pointerdown', handlePointerDown);
@@ -157,7 +157,7 @@ const AsciiCube: React.FC = () => {
     effect.domElement.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    
+
     const onWindowResize = () => {
       const w = container.clientWidth;
       const h = container.clientHeight;
@@ -168,44 +168,44 @@ const AsciiCube: React.FC = () => {
     };
     window.addEventListener('resize', onWindowResize);
     onWindowResize();
-    
+
     const clock = new THREE.Clock();
     let animationFrameId: number;
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
       const dt = clock.getDelta();
-      
+
       let autoRotX = 0;
       let autoRotY = 0;
 
-      if(stateRef.current.autoRotate) {
+      if (stateRef.current.autoRotate) {
         autoRotX = 0.2 * dt;
         autoRotY = 0.35 * dt;
       }
-      
+
       cube.rotation.x += autoRotX + (stateRef.current.keyboardRotation.x + stateRef.current.velX) * dt * 10;
       cube.rotation.y += autoRotY + (stateRef.current.keyboardRotation.y + stateRef.current.velY) * dt * 10;
-      
+
       const damping = 0.9;
       stateRef.current.velX *= damping;
       stateRef.current.velY *= damping;
-      
+
       effect.render(scene, camera);
     };
     animate();
 
     effect.domElement.focus();
-    
+
     return () => {
       window.removeEventListener('resize', onWindowResize);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      
+
       if (container.contains(effect.domElement)) {
         container.removeChild(effect.domElement);
       }
       cancelAnimationFrame(animationFrameId);
-      
+
       geometry.dispose();
       material.map?.dispose();
       material.dispose();
@@ -217,8 +217,8 @@ const AsciiCube: React.FC = () => {
     <>
       <div ref={mountRef} className="absolute inset-0" />
       <div className="absolute bottom-5 left-5 z-10">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="font-body tracking-widest text-foreground hover:bg-transparent hover:text-white"
           onClick={() => setIsPlaying(!isPlaying)}
         >
@@ -227,7 +227,7 @@ const AsciiCube: React.FC = () => {
         </Button>
       </div>
       <div className="absolute top-5 right-5 z-10">
-        <a href="https://github.com/firebase/genkit-patterns/tree/main/apps/ascii-art-cube" target="_blank" rel="noopener noreferrer" aria-label="View source on GitHub">
+        <a href="https://github.com/ZhanZiyuan/ascii-cube" target="_blank" rel="noopener noreferrer" aria-label="View source on GitHub">
           <Button variant="ghost" size="icon" className="hover:bg-transparent">
             <GithubIcon />
           </Button>
