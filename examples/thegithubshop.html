@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Interactive ASCII Cube (three.js + AsciiEffect)</title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background: #111;
+            color: #ddd;
+            font-family: monospace;
+        }
+
+        #container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ascii-output {
+            outline: none;
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .ascii-output:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container" aria-label="3d ASCII cube demo" role="img"></div>
+
+    <script type="module">
+        import * as THREE from 'https://unpkg.com/three@0.169.0/build/three.module.js';
+        import { AsciiEffect } from 'https://unpkg.com/three@0.169.0/examples/jsm/effects/AsciiEffect.js';
+
+        const container = document.getElementById('container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0, 4);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // ---------- AsciiEffect ----------
+        const effect = new AsciiEffect(renderer, ' .:-+*=#%@', { invert: true });
+        effect.domElement.classList.add('ascii-output');
+        effect.domElement.setAttribute('tabindex', '0');
+        effect.domElement.setAttribute('role', 'img');
+        effect.domElement.setAttribute('aria-label', '3d ASCII cube model rotatable with arrow keys.');
+        container.appendChild(effect.domElement);
+
+        // ---------- Light ----------
+        const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+        hemi.position.set(0, 1, 0);
+        scene.add(hemi);
+
+        const dir = new THREE.DirectionalLight(0xffffff, 0.7);
+        dir.position.set(3, 3, 3);
+        scene.add(dir);
+
+        // ---------- Cube ----------
+        const geometry = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+        const texLoader = new THREE.TextureLoader();
+
+        // Inverse color mapping processing function
+        function invertTexture(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const imgData = ctx.getImageData(0, 0, img.width, img.height);
+                    const data = imgData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = 255 - data[i];       // R
+                        data[i + 1] = 255 - data[i + 1]; // G
+                        data[i + 2] = 255 - data[i + 2]; // B
+                    }
+                    ctx.putImageData(imgData, 0, 0);
+                    const tex = new THREE.Texture(canvas);
+                    tex.needsUpdate = true;
+                    resolve(tex);
+                };
+                img.src = url;
+            });
+        }
+
+        const githubLogoUrl = 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png';
+        const material = new THREE.MeshStandardMaterial({
+            roughness: 0.6,
+            metalness: 0.0,
+            color: 0xffffff
+        });
+
+        // Load inverted color map
+        invertTexture(githubLogoUrl).then((tex) => {
+            material.map = tex;
+            material.needsUpdate = true;
+        });
+
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+
+        // ---------- Control status ----------
+        const state = {
+            rotating: false,
+            lastX: 0,
+            lastY: 0,
+            velX: 0,
+            velY: 0,
+            keyboardRotation: { x: 0, y: 0 }
+        };
+
+        // Keyboard control
+        window.addEventListener('keydown', (e) => {
+            const step = 0.06;
+            if (e.key === 'ArrowLeft') state.keyboardRotation.y = -step;
+            if (e.key === 'ArrowRight') state.keyboardRotation.y = step;
+            if (e.key === 'ArrowUp') state.keyboardRotation.x = -step;
+            if (e.key === 'ArrowDown') state.keyboardRotation.x = step;
+        });
+        window.addEventListener('keyup', (e) => {
+            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                state.keyboardRotation.x = 0;
+                state.keyboardRotation.y = 0;
+            }
+        });
+
+        // Mouse drag control
+        effect.domElement.addEventListener('pointerdown', (e) => {
+            state.rotating = true;
+            state.lastX = e.clientX;
+            state.lastY = e.clientY;
+            effect.domElement.setPointerCapture(e.pointerId);
+        });
+        effect.domElement.addEventListener('pointermove', (e) => {
+            if (!state.rotating) return;
+            const dx = (e.clientX - state.lastX) / 200;
+            const dy = (e.clientY - state.lastY) / 200;
+            state.lastX = e.clientX;
+            state.lastY = e.clientY;
+            state.velY = dx;
+            state.velX = dy;
+        });
+        effect.domElement.addEventListener('pointerup', (e) => {
+            state.rotating = false;
+            try { effect.domElement.releasePointerCapture(e.pointerId); } catch { }
+        });
+
+        // Scroll wheel zoom
+        effect.domElement.addEventListener('wheel', (e) => {
+            camera.position.z += e.deltaY * 0.0015;
+            camera.position.z = Math.max(1.5, Math.min(10, camera.position.z));
+        });
+
+        // ---------- Adaptive ----------
+        function onWindowResize() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+            effect.setSize(w, h);
+        }
+        window.addEventListener('resize', onWindowResize);
+        onWindowResize();
+
+        // ---------- Animation ----------
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = clock.getDelta();
+
+            // ✳️ Automatic rotation (even without input).
+            const autoRotX = 0.2 * dt;
+            const autoRotY = 0.35 * dt;
+
+            cube.rotation.x += autoRotX + (state.keyboardRotation.x + state.velX) * dt * 10;
+            cube.rotation.y += autoRotY + (state.keyboardRotation.y + state.velY) * dt * 10;
+
+            // ✳️ Lower the damping (from 0.92 to 0.97).
+            state.velX *= 0.97;
+            state.velY *= 0.97;
+
+            effect.render(scene, camera);
+        }
+        animate();
+
+        effect.domElement.focus();
+    </script>
+</body>
+
+</html>
